@@ -1,0 +1,26 @@
+build
+dist
+tests/coverage/
+.coverage
+.bash_history
+
+*.egg/
+*.egg-info/
+
+__pycache__/
+*.pyc
+*.tgz
+*.gz
+*.log
+
+.cache/
+.config/
+.node-gyp/
+.npm/
+.eggs/
+.idea/
+.bash_history
+.nano_history
+
+# Results of the build
+tests/tmp/*
