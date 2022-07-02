@@ -25,4 +25,9 @@ SmartMeterTexas.com site.
 
 # bin/smtx-server.py
 Run this to start up the local server.
-Configure with ~/.
+Configure with `~/.config/smartmetertx/config.yml`.
+Starts on port 7689 by default.
+
+Loads a simple web page that can be used to visualize the data you want.
+
+Extend as you please from here :)
