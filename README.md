@@ -31,3 +31,6 @@ Starts on port 7689 by default.
 Loads a simple web page that can be used to visualize the data you want.
 
 Extend as you please from here :)
+
+# Screenshots
+![smtx-sample-page](https://markizano.net/assets/images/smtx-home-page.png)
