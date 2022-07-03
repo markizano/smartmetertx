@@ -10,10 +10,13 @@ log = getLogger(__name__)
 from smartmetertx.utils import getConfig
 from smartmetertx.controller import SmartMeterController
 
+#class HttpApi(object):
+
 class MeterServer(SmartMeterController):
     mongo = None
 
     def __init__(self):
+        super(MeterServer, self)
         self.config = getConfig()
         self.getMongoConnection()
 
@@ -97,7 +100,6 @@ class GoogleGraphsFS(SmartMeterController):
             page='<p>Index Page.</p>',
             navigation='<li><a href="/user/login">Login</a></li>'
         )
-
 
 def main():
     '''
