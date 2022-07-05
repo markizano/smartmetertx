@@ -36,8 +36,8 @@ let MeterRender;
         fdate.datepicker(dtopts);
         tdate.datepicker(dtopts);
 
-        fdate.val(`${sixmonths.getFullYear()}-${sixmonths.getMonth()+1}-${sixmonths.getDay()}`);
-        tdate.val(`${yday.getFullYear()}-${yday.getMonth()+1}-${yday.getDay()}`);
+        fdate.val(`${sixmonths.getFullYear()}-${sixmonths.getMonth()+1}-${sixmonths.getDate()}`);
+        tdate.val(`${yday.getFullYear()}-${yday.getMonth()+1}-${yday.getDate()}`);
 
         fdate.change(MeterRender.requestMetrics)
         tdate.change(MeterRender.requestMetrics)
