@@ -40,7 +40,7 @@ if USE_HTTP2:
 # copying the module over from the credits in the README.md.
 # Alas: It's not very clean as far as a purist is concerned, but it gets the job done. Unfortunately, this app is vulnerable
 # to MITM attack =(
-# This explains the why behind the condition of using HTTP2
+# This ^^ explains the why behind the condition of using HTTP2
 class MeterReader:
     HOSTNAME = 'smartmetertexas.com'
     HOST = 'https://www.smartmetertexas.com' if USE_HTTP2 else 'https://smartmetertexas.com'

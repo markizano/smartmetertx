@@ -9,6 +9,7 @@ log = getLogger(__name__)
 
 from smartmetertx.utils import getConfig
 from smartmetertx.controller import SmartMeterController
+log.setLevel(0)
 
 #class HttpApi(object):
 
@@ -108,6 +109,7 @@ def main():
     smtx = MeterServer()
     content = GoogleGraphsFS()
     config = getConfig()
+    log.debug(f'Got config: {config}')
     serverConfig = config.get('daemon', {})
     cherrypy.config.update(serverConfig.get('cherrypy', {}))
     cherrypy.tree.mount(smtx, '/api', { '/api': serverConfig['sites']['/api'] } )

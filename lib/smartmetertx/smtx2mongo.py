@@ -104,3 +104,4 @@ def main():
   else:
     log.warning('No records inserted!')
   return 0
+

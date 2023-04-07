@@ -26,7 +26,7 @@ let MeterRender;
 
     MeterRender.onLoad = function onLoad(event) {
         let fdate = $('#fdate'), tdate = $('#tdate');
-        let sixmonths = new Date( Date.now() - (86400 * 1000 * 180) );
+        let sixmonths = new Date( Date.now() - (86400 * 1000 * 365) );
         let yday = new Date(Date.now() - 86400000);
         let dtopts = {
             changeMonth: true,

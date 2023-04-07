@@ -1,2 +1,2 @@
-from .api import MeterReader
-from .smtx2mongo import Smtx2Mongo
+from smartmetertx.api import MeterReader
+from smartmetertx.smtx2mongo import Smtx2Mongo
