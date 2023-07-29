@@ -4,34 +4,24 @@ import json
 import cherrypy
 import jinja2
 
-from kizano import getLogger
+from kizano import getLogger, Config
 log = getLogger(__name__)
 
-from smartmetertx.utils import getConfig
+from smartmetertx.utils import getConfig, getMongoConnection
 from smartmetertx.controller import SmartMeterController
-log.setLevel(0)
 
 #class HttpApi(object):
 
 class MeterServer(SmartMeterController):
     mongo = None
 
-    def __init__(self):
+    def __init__(self, config: Config):
         super(MeterServer, self)
-        self.config = getConfig()
-        self.getMongoConnection()
+        self.config = config
+        self.db = getMongoConnection(config).get_database(config['mongo'].get('dbname', 'smartmetertx'))
 
     def __del__(self):
         self.close()
-
-    def getMongoConnection(self):
-        if not self.mongo:
-            import pymongo
-            log.info('Connecting to DB...')
-            self.mongo  = pymongo.MongoClient(self.config['mongodb']['url'])
-            self.db     = self.mongo.get_database( self.config['mongodb'].get('dbname', 'smartmetertx') )
-            log.info('Connected!')
-        return self.mongo
 
     def close(self):
         if self.mongo:
@@ -54,7 +44,6 @@ class MeterServer(SmartMeterController):
         result = {}
         import dateparser
         queryDate = dateparser.parse(date)
-        self.getMongoConnection()
         timerange = {
             '$gte': queryDate.replace( hour=max(0, queryDate.hour-1) ),
             '$lt': queryDate.replace( hour=min(23, queryDate.hour+1) )
@@ -74,7 +63,6 @@ class MeterServer(SmartMeterController):
         import dateparser
         fromDate = dateparser.parse(fdate)
         toDate = dateparser.parse(tdate)
-        self.getMongoConnection()
         timerange = {
             '$gte': fromDate,
             '$lt': toDate
@@ -106,9 +94,9 @@ def main():
     '''
     Main application/API entry point.
     '''
-    smtx = MeterServer()
-    content = GoogleGraphsFS()
     config = getConfig()
+    smtx = MeterServer(config)
+    content = GoogleGraphsFS()
     log.debug(f'Got config: {config}')
     serverConfig = config.get('daemon', {})
     cherrypy.config.update(serverConfig.get('cherrypy', {}))
