@@ -12,26 +12,9 @@ from smartmetertx.utils import getConfig
 # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
 # The only thing missing will be the response.body which is not logged.
 if os.getenv('DEBUG', False):
-    try:
-        import http.client as http_client
-    except ImportError:
-        # Python 2
-        import httplib as http_client
-        http_client.HTTPConnection.debuglevel = 1
-
     requests_log = getLogger("requests.urllib3", 10)
     requests_log.propagate = True
 # END: #StackOverflow
-
-USE_HTTP2 = os.getenv('USE_HTTP2')
-if USE_HTTP2:
-    import collections.abc
-    #hyper needs the four following aliases to be done manually.
-    collections.Iterable = collections.abc.Iterable
-    collections.Mapping = collections.abc.Mapping
-    collections.MutableSet = collections.abc.MutableSet
-    collections.MutableMapping = collections.abc.MutableMapping
-    from hyper.contrib import HTTP20Adapter
 
 
 # @markizano: Personal notes: I realize now that it's impossible to get this working with https://www.smartmetertexas.com
@@ -42,23 +25,21 @@ if USE_HTTP2:
 # to MITM attack =(
 # This ^^ explains the why behind the condition of using HTTP2
 class MeterReader:
-    HOSTNAME = 'smartmetertexas.com'
-    HOST = 'https://www.smartmetertexas.com' if USE_HTTP2 else 'https://smartmetertexas.com'
-    USER_AGENT = 'Mozilla/5.0 (python3; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+    HOSTNAME = 'www.smartmetertexas.com'
+    HOST = f'https://{HOSTNAME}'
+    USER_AGENT = 'API Calls (python3; Linux x86_64) Track your own metrics with SmartMeterTX: https://github.com/markizano/smartmetertx'
     TIMEOUT = 30
 
     def __init__(self, timeout=10):
         self.log = getLogger(__name__)
         self.logged_in = False
         self.session = requests.Session()
-        if USE_HTTP2:
-            self.session.mount('https://', HTTP20Adapter())
         self.timeout = timeout
         self.session.headers['Authority'] = MeterReader.HOSTNAME
         self.session.headers['Origin'] = MeterReader.HOST
         self.session.headers['Accept'] = 'application/json, text/plain, */*'
         self.session.headers['Accept-Language'] = 'en-US,en;q=0.9'
-        self.session.headers['Content-Type'] = 'application/json;charset=UTF-8'
+        self.session.headers['Content-Type'] = 'application/json; charset=UTF-8'
         self.session.headers['dnt'] = '1'
         self.session.headers['sec-ch-ua'] = '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'
         self.session.headers['sec-ch-ua-mobile'] = '?0'
@@ -98,7 +79,7 @@ class MeterReader:
             "username": username,
             "password": password
         }
-        url = f"{MeterReader.HOST}/api/user/authenticate"
+        url = f"{MeterReader.HOST}/commonapi/user/authenticate"
         r = self.api_call(url, json=creds)
         if r.status_code != 200:
             self.log.error("Login failed.")

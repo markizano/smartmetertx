@@ -2,10 +2,15 @@
 
 import os, io
 import sys
-import yaml
 from glob import glob
 from pprint import pprint
 from setuptools import setup
+
+try:
+    import yaml
+except ImportError:
+    os.system('pip3 install PyYAML')
+    import yaml
 
 sys.path.insert(0, os.path.abspath('.'))
 
@@ -22,20 +27,20 @@ setup_opts = {
     'name'                : 'smartmetertx2mongo',
     # We change this default each time we tag a release.
     'version'             : f'1.0.{PATCH}',
-    'summary'             : 'SmartMeterTX Web Viewer Applet',
     'description'         : 'Implementation of smartmetertx to save records to mongodb with config driven via YAML.',
     'author'              : 'Markizano Draconus',
     'author_email'        : 'markizano@markizano.net',
     'url'                 : 'https://markizano.net/',
     'license'             : 'GNU',
-    'platform'            : 'linux',
-
     'tests_require'       : ['nose', 'mock', 'coverage'],
     'install_requires'    : [
+        'dateparser',
         'kizano',
         'pymongo',
         'requests',
         'cherrypy',
+        'PyYAML',
+        'python-gnupg',
         'jinja2',
     ],
     'package_dir'         : { 'smartmetertx': 'lib/smartmetertx' },
@@ -44,6 +49,9 @@ setup_opts = {
     ],
     'scripts'             : glob('bin/*'),
     'test_suite'          : 'tests',
+    'data_files'          : [
+        ('ui', ['ui/index.html', 'ui/assets/css/index.css', 'ui/assets/js/main.js']),
+    ]
 }
 
 try:

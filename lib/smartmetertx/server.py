@@ -10,8 +10,6 @@ log = getLogger(__name__)
 from smartmetertx.utils import getConfig, getMongoConnection
 from smartmetertx.controller import SmartMeterController
 
-#class HttpApi(object):
-
 class MeterServer(SmartMeterController):
     mongo = None
 
@@ -36,30 +34,47 @@ class MeterServer(SmartMeterController):
         return self.returnValue(True, {'hello': 'world'})
 
     @cherrypy.expose
-    def meterRead(self, date):
+    @cherrypy.tools.json_out()
+    def meterRead(self, date: str = None):
         '''
         Return a meter read for a specified date.
         Gets the full meter read from the DB.
         '''
         result = {}
-        import dateparser
-        queryDate = dateparser.parse(date)
-        timerange = {
-            '$gte': queryDate.replace( hour=max(0, queryDate.hour-1) ),
-            '$lt': queryDate.replace( hour=min(23, queryDate.hour+1) )
-        }
-        result = self.db.meterReads.find_one({'datetime': timerange })
-        del result['_id']
-        result['datetime'] = result['datetime'].strftime('%F/%R:%S')
-        return self.returnValue(True, result)
+        if date is None:
+            return self.returnValue(False, 'No date specified.')
+        try:
+            import dateparser
+            queryDate = dateparser.parse(date)
+            timerange = {
+                '$gte': queryDate.replace( hour=max(0, queryDate.hour-1) ),
+                '$lt': queryDate.replace( hour=min(23, queryDate.hour+1) )
+            }
+            result = self.db.meterReads.find_one({'datetime': timerange })
+            if result is None:
+                return self.returnValue(False, f'No meter read found for {date}')
+            log.debug(result)
+            del result['_id']
+            result['datetime'] = result['datetime'].strftime('%F/%R:%S')
+            return self.returnValue(True, result)
+        except Exception as e:
+            import traceback as tb
+            log.error(f'Error getting meter read for {date}: {e}')
+            log.error(tb.format_exc())
+            return self.returnValue(False, 'uhm, well, this is embarassing :S')
 
     @cherrypy.expose
-    def meterReads(self, fdate, tdate):
+    @cherrypy.tools.json_out()
+    def meterReads(self, fdate: str = None, tdate: str = None):
         '''
         Return a list of meter reads for a specified date range.
         Gets only the list of values paired with the date as an object/key-value pairing.
         '''
         result = []
+        if fdate is None:
+            return self.returnValue(False, 'No From Date Specified. Need `fdate`.')
+        if tdate is None:
+            return self.returnValue(False, 'No To Date Specified. Need `tdate`.')
         import dateparser
         fromDate = dateparser.parse(fdate)
         toDate = dateparser.parse(tdate)
@@ -75,10 +90,9 @@ class MeterServer(SmartMeterController):
         return self.returnValue(True, result)
 
 class GoogleGraphsFS(SmartMeterController):
-    def __init__(self):
-        UI_PATH = os.path.realpath( os.getenv('UI_PATH', './ui') )
-        log.info(f'Serving files from {UI_PATH}')
-        fsloader = jinja2.FileSystemLoader( UI_PATH )
+    def __init__(self, uiPath: str = None):
+        log.info(f'Serving files from {uiPath}')
+        fsloader = jinja2.FileSystemLoader( uiPath )
         self.view = jinja2.Environment(loader=fsloader)
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
         cherrypy.response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
@@ -95,20 +109,23 @@ def main():
     Main application/API entry point.
     '''
     config = getConfig()
+    apiConfig = {
+        'tools.trailing_slash.on': False,
+        'tools.json_in.on': True,
+        'tools.staticdir.on': False,
+    }
+    serverConfig = {
+        'tools.trailing_slash.on': False,
+        'tools.staticdir.on': True,
+        'tools.staticdir.dir': os.path.realpath( os.getenv('UI_PATH', 'ui') )
+    }
     smtx = MeterServer(config)
-    content = GoogleGraphsFS()
+    content = GoogleGraphsFS( serverConfig['tools.staticdir.dir'] )
     log.debug(f'Got config: {config}')
-    serverConfig = config.get('daemon', {})
-    cherrypy.config.update(serverConfig.get('cherrypy', {}))
-    cherrypy.tree.mount(smtx, '/api', { '/api': serverConfig['sites']['/api'] } )
-    cherrypy.tree.mount(content, '/', {'/': serverConfig['sites']['/'] })
-    if hasattr(cherrypy.engine, 'block'):
-        # 3.1 syntax
-        cherrypy.engine.start()
-        cherrypy.engine.block()
-    else:
-        # 3.0 syntax
-        cherrypy.server.quickstart()
-        cherrypy.engine.start()
+    cherrypy.config.update(config.get('daemon', {}).get('cherrypy', {}))
+    cherrypy.tree.mount(smtx, '/api', { '/api': apiConfig } )
+    cherrypy.tree.mount(content, '/', {'/': serverConfig })
+    cherrypy.engine.start()
+    cherrypy.engine.block()
     return 0
 
