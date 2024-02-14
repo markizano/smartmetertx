@@ -1,14 +1,16 @@
 
-import os
-import json
+import os, sys
 import cherrypy
 import jinja2
+from datetime import datetime
 
-from kizano import getLogger, Config
-log = getLogger(__name__)
+from kizano import getLogger, getConfig, Config
+log = getLogger('smartmetertx.server')
 
-from smartmetertx.utils import getConfig, getMongoConnection
+from smartmetertx.utils import getMongoConnection
 from smartmetertx.controller import SmartMeterController
+
+DEFAULT_UI_PATH = os.path.join( sys.exec_prefix, 'share', 'smartmetertx' )
 
 class MeterServer(SmartMeterController):
     mongo = None
@@ -108,6 +110,7 @@ def main():
     '''
     Main application/API entry point.
     '''
+    cherrypy._cplogging.LogManager.time = lambda self: datetime.now().strftime('%F %T')
     config = getConfig()
     apiConfig = {
         'tools.trailing_slash.on': False,
@@ -117,7 +120,7 @@ def main():
     serverConfig = {
         'tools.trailing_slash.on': False,
         'tools.staticdir.on': True,
-        'tools.staticdir.dir': os.path.realpath( os.getenv('UI_PATH', 'ui') )
+        'tools.staticdir.dir': os.path.realpath( config.get('server', {}).get('ui.path', DEFAULT_UI_PATH) )
     }
     smtx = MeterServer(config)
     content = GoogleGraphsFS( serverConfig['tools.staticdir.dir'] )

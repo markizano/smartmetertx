@@ -9,11 +9,11 @@ import gnupg
 import json
 from datetime import datetime
 
-import kizano
+from kizano import getConfig, getLogger
 from smartmetertx.api import MeterReader
-from smartmetertx.utils import getConfig, getMongoConnection
+from smartmetertx.utils import getMongoConnection
 
-log = kizano.getLogger(__name__)
+log = getLogger(__name__)
 HOME = os.getenv('HOME', '')
 SMTX_FROM   = dateparser.parse(os.environ.get('SMTX_FROM', 'day before yesterday'))
 SMTX_TO     = dateparser.parse(os.environ.get('SMTX_TO', 'today'))

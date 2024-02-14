@@ -50,7 +50,7 @@ setup_opts = {
     'scripts'             : glob('bin/*'),
     'test_suite'          : 'tests',
     'data_files'          : [
-        ('ui', ['ui/index.html', 'ui/assets/css/index.css', 'ui/assets/js/main.js']),
+        ('share/smartmetertx', ['ui/index.html', 'ui/assets/css/index.css', 'ui/assets/js/main.js']),
     ]
 }
 

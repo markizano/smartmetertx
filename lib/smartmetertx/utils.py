@@ -6,11 +6,8 @@ import kizano
 from urllib.parse import urlencode
 
 log = kizano.getLogger(__name__)
-Config = kizano.Config
-Config.APP_NAME = 'smartmetertx'
-getConfig = Config.getConfig
 
-def getMongoConnection(config: Config):
+def getMongoConnection(config: kizano.Config):
     # Establish connections to various sources and targets.
     log.info('Connecting to MongoDB...')
     gpg = gnupg.GPG(gnupghome=os.path.join(os.environ['HOME'], '.gnupg'), use_agent=True)

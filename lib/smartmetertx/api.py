@@ -3,8 +3,7 @@ import json
 import requests
 
 from pprint import pformat
-from kizano import getLogger
-from smartmetertx.utils import getConfig
+from kizano import getLogger, getConfig
 
 # BEGIN: #StackOverflow
 # @Source: https://stackoverflow.com/a/16630836/2769671
@@ -17,13 +16,6 @@ if os.getenv('DEBUG', False):
 # END: #StackOverflow
 
 
-# @markizano: Personal notes: I realize now that it's impossible to get this working with https://www.smartmetertexas.com
-# They cast some very strange spells on the SSL certificates that prevents {requests.ssl} to ever verify them properly.
-# The HTTP/2.0 negotiation also throws things off with SNI. I spent more time trying to decode this protocol than I did
-# copying the module over from the credits in the README.md.
-# Alas: It's not very clean as far as a purist is concerned, but it gets the job done. Unfortunately, this app is vulnerable
-# to MITM attack =(
-# This ^^ explains the why behind the condition of using HTTP2
 class MeterReader:
     HOSTNAME = 'www.smartmetertexas.com'
     HOST = f'https://{HOSTNAME}'

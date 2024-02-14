@@ -25,3 +25,4 @@ __pycache__/
 # Results of the build
 tests/tmp/*
 .build-id
+node_modules
