@@ -3,7 +3,7 @@ import json
 import requests
 
 from pprint import pformat
-from kizano import getLogger, getConfig
+from kizano import getLogger
 
 # BEGIN: #StackOverflow
 # @Source: https://stackoverflow.com/a/16630836/2769671

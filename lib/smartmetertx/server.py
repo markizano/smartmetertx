@@ -111,6 +111,10 @@ def main():
     Main application/API entry point.
     '''
     cherrypy._cplogging.LogManager.time = lambda self: datetime.now().strftime('%F %T')
+    # Default access_log_format '{h} {l} {u} {t} "{r}" {s} {b} "{f}" "{a}"'
+    # h - remote.ip, l - "-", u - login (or "-"), t - time, r - request line, s - status, b - content length
+    # f - referer, a - User Agent, o - Host or -, i - request.unique_id, z - UtcTime
+    cherrypy._cplogging.LogManager.access_log_format = '{t} ACCESS {s} {r} {h} {b} bytes'
     config = getConfig()
     apiConfig = {
         'tools.trailing_slash.on': False,
