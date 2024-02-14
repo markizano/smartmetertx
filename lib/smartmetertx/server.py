@@ -2,6 +2,7 @@
 import os, sys
 import cherrypy
 import jinja2
+import json
 from datetime import datetime
 
 from kizano import getLogger, getConfig, Config
@@ -91,6 +92,15 @@ class MeterServer(SmartMeterController):
             result.append( [sdate, mRead['reading'] ] )
         return self.returnValue(True, result)
 
+    @cherrypy.expose
+    def shutdown(self):
+        '''
+        Shutdown the server.
+        '''
+        log.info('Server shutting down...')
+        cherrypy.engine.exit()
+        log.info('CherryPy Server exit.')
+
 class GoogleGraphsFS(SmartMeterController):
     def __init__(self, uiPath: str = None):
         log.info(f'Serving files from {uiPath}')
@@ -114,7 +124,17 @@ def main():
     # Default access_log_format '{h} {l} {u} {t} "{r}" {s} {b} "{f}" "{a}"'
     # h - remote.ip, l - "-", u - login (or "-"), t - time, r - request line, s - status, b - content length
     # f - referer, a - User Agent, o - Host or -, i - request.unique_id, z - UtcTime
-    cherrypy._cplogging.LogManager.access_log_format = '{t} ACCESS {s} {r} {h} {b} bytes'
+    cherrypy._cplogging.LogManager.access_log_format = '{' + json.dumps({
+        'time': '{t}',
+        'from': '{h}',
+        'user': '{u}',
+        'host': '{o}',
+        'status': '{s}',
+        'bytes': '{b}',
+        'referer': '{f}',
+        'agent': '{a}'
+    }) + '}'
+    #'{t} from={h} user={u} host={o} status={s} bytes={b} referer="{f}" agent="{a}"'
     config = getConfig()
     ui_path = os.path.realpath( config.get('server', {}).get('ui.path', DEFAULT_UI_PATH) )
     if not os.path.exists(ui_path):
@@ -142,6 +162,8 @@ def main():
         'tools.staticdir.on': True,
         'tools.staticdir.dir': ui_path
     }
+    log.info('Starting SmartMeterTX Server...')
+    log.debug(config)
     smtx = MeterServer(config)
     content = GoogleGraphsFS( serverConfig['tools.staticdir.dir'] )
     log.debug(f'Got config: {config}')

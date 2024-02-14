@@ -26,7 +26,7 @@ except:
 setup_opts = {
     'name'                : 'smartmetertx2mongo',
     # We change this default each time we tag a release.
-    'version'             : f'1.0.{PATCH}',
+    'version'             : f'1.1.{PATCH}',
     'description'         : 'Implementation of smartmetertx to save records to mongodb with config driven via YAML.',
     'author'              : 'Markizano Draconus',
     'author_email'        : 'markizano@markizano.net',
@@ -50,7 +50,7 @@ setup_opts = {
     'scripts'             : glob('bin/*'),
     'test_suite'          : 'tests',
     'data_files'          : [
-        (os.path.join(sys.prefix, 'share', 'smartmetertx'), ['ui/index.html', 'ui/assets/css/index.css', 'ui/assets/js/main.js']),
+        ('share/smartmetertx', glob('ui/*')),
     ]
 }
 
