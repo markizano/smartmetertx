@@ -116,6 +116,20 @@ def main():
     # f - referer, a - User Agent, o - Host or -, i - request.unique_id, z - UtcTime
     cherrypy._cplogging.LogManager.access_log_format = '{t} ACCESS {s} {r} {h} {b} bytes'
     config = getConfig()
+    ui_path = os.path.realpath( config.get('server', {}).get('ui.path', DEFAULT_UI_PATH) )
+    if not os.path.exists(ui_path):
+        possible_paths = [
+            os.path.join(os.getenv('HOME', '/home/markizano'), '.local', 'share', 'smartmetertx'),
+            os.path.join(sys.prefix, 'local', 'share', 'smartmetertx'),
+            os.path.join(sys.prefix, 'share', 'smartmetertx'),
+        ]
+        for ppath in possible_paths:
+            if os.path.exists(ppath):
+                ui_path = ppath
+                break
+        if not os.path.exists(ui_path):
+            log.error(f'Could not find UI path: {ui_path}')
+            return 1
     apiConfig = {
         'tools.trailing_slash.on': False,
         'tools.json_in.on': True,
@@ -124,7 +138,7 @@ def main():
     serverConfig = {
         'tools.trailing_slash.on': False,
         'tools.staticdir.on': True,
-        'tools.staticdir.dir': os.path.realpath( config.get('server', {}).get('ui.path', DEFAULT_UI_PATH) )
+        'tools.staticdir.dir': ui_path
     }
     smtx = MeterServer(config)
     content = GoogleGraphsFS( serverConfig['tools.staticdir.dir'] )
