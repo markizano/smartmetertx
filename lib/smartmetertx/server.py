@@ -127,6 +127,8 @@ def main():
             if os.path.exists(ppath):
                 ui_path = ppath
                 break
+            else:
+                log.debug(f'Could not find UI in path: {ppath}')
         if not os.path.exists(ui_path):
             log.error(f'Could not find UI path: {ui_path}')
             return 1
@@ -144,7 +146,7 @@ def main():
     content = GoogleGraphsFS( serverConfig['tools.staticdir.dir'] )
     log.debug(f'Got config: {config}')
     cherrypy.config.update(config.get('daemon', {}).get('cherrypy', {}))
-    cherrypy.tree.mount(smtx, '/api', { '/api': apiConfig } )
+    cherrypy.tree.mount(smtx, '/api', { '/': apiConfig } )
     cherrypy.tree.mount(content, '/', {'/': serverConfig })
     cherrypy.engine.start()
     cherrypy.engine.block()
