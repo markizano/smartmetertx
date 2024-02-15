@@ -1,8 +1,7 @@
 '''
 \x1b[31mModule-Level Documentation!\x1b[0m
 '''
-import os, sys
-import yaml
+import os
 import dateparser
 import pymongo
 import gnupg
