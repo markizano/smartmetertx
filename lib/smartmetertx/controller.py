@@ -2,6 +2,7 @@
 import os
 import json
 import cherrypy
+import traceback as tb
 
 class SmartMeterController(object):
     '''
@@ -10,6 +11,14 @@ class SmartMeterController(object):
     If a method should be implemented by all controllers, it could be included
     here for all controllers to enjoy.
     '''
+    ERRORS = {
+        'request-method': 'Request method not allowed.',
+        'accept-json': 'Accept header must be application/json.',
+        'not-json': 'Content-Type must be application/json.',
+        'content-length': 'Content-Length header required.',
+        'empty-body': 'Empty request body.',
+        'invalid-json': 'Invalid JSON: %s',
+    }
 
     def isValidJSONRequest(self, request, body):
         '''
@@ -35,34 +44,34 @@ class SmartMeterController(object):
         mesgs = []
         if request.get('REQUEST_METHOD', '') not in ['GET', 'POST', 'PUT']:
             result = False
-            mesgs.append(ERRORS['request-method'])
+            mesgs.append(SmartMeterController.ERRORS['request-method'])
             cherrypy.response.status = 405
         if request.get('REQUEST_URI', '').startswith('/api'):
             accept = request.get('HTTP_ACCEPT', '')
             if ('application/json' not in accept) and ('*/*' not in accept):
                 result = False
-                mesgs.append(ERRORS['accept-json'])
+                mesgs.append(SmartMeterController.ERRORS['accept-json'])
                 cherrypy.response.status = 415
             if request['REQUEST_METHOD'] == 'POST':
                 if 'application/json' not in request.get('CONTENT_TYPE', ''):
                     result = False
-                    mesgs.append(ERRORS['not-json'])
+                    mesgs.append(SmartMeterController.ERRORS['not-json'])
                     cherrypy.response.status = 400
                 cl = request.get('CONTENT_LENGTH', 0)
                 if not cl or int(cl) < 1:
                     result = False
-                    mesgs.append(ERRORS['content-length'])
+                    mesgs.append(SmartMeterController.ERRORS['content-length'])
                     cherrypy.response.status = 411
                 if not body:
                     result = False
-                    mesgs.append(ERRORS['empty-body'])
+                    mesgs.append(SmartMeterController.ERRORS['empty-body'])
                     cherrypy.response.status = 411
                 else:
                     try:
                         j = json.loads(body)
                     except ValueError as e:
                         result = False
-                        mesgs.append(ERRORS['invalid-json'] % e)
+                        mesgs.append(SmartMeterController.ERRORS['invalid-json'] % e)
                         cherrypy.response.status = 417
         return result, mesgs
 
@@ -103,10 +112,10 @@ class SmartMeterController(object):
         if 'DEBUG' in os.environ:
             kwargs['indent'] = 2
             kwargs['sort_keys'] = True
-        return json.dumps({
+        return {
             'error': False,
             'status': 200,
             'value': value,
             'return': result,
-        }, **kwargs) + "\n"
+        }
 

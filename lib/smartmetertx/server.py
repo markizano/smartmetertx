@@ -6,10 +6,10 @@ import json
 from datetime import datetime
 
 from kizano import getLogger, getConfig, Config
-log = getLogger('smartmetertx.server')
+log = getLogger('smartmetertx.server', log_format='json')
 
-from smartmetertx.utils import getMongoConnection
-from smartmetertx.controller import SmartMeterController
+from .utils import getMongoConnection
+from .controller import SmartMeterController
 
 DEFAULT_UI_PATH = os.path.join( sys.exec_prefix, 'share', 'smartmetertx' )
 
