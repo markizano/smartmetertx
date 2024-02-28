@@ -14,7 +14,7 @@ let MeterRender = {};
         rows.each((i, r) => {
             let row = $(r);
             let consumption = parseFloat(row.find('td').eq(2).text());
-            row.find('td').eq(3).text((consumption * kwh).toFixed(2));
+            row.find('td').eq(3).text('$' + (consumption * kwh).toFixed(2));
         });
     };
 
@@ -59,8 +59,8 @@ let MeterRender = {};
             let row = $('<tr>');
             row.append($(`<td></td>`).text(date[0]));
             row.append($(`<td></td>`).text(parseInt(date[1]) + 1));
-            row.append($(`<td></td>`).text(months[k].toFixed(2)));
-            row.append($(`<td></td>`).text((months[k] * kwh.val()).toFixed(2)));
+            row.append($(`<td></td>`).text(months[k].toFixed(2) + ' kWh'));
+            row.append($(`<td></td>`).text('$' + (months[k] * kwh.val()).toFixed(2)));
             tbody.append(row);
         });
 
