@@ -1,9 +1,9 @@
 import os
-import json
 import requests
+import gnupg
 
 from pprint import pformat
-from kizano import getLogger
+from kizano import getLogger, getConfig
 
 # BEGIN: #StackOverflow
 # @Source: https://stackoverflow.com/a/16630836/2769671
@@ -17,14 +17,16 @@ if os.getenv('DEBUG', False):
 
 
 class MeterReader:
-    HOSTNAME = 'www.smartmetertexas.com'
+    HOSTNAME = 'services.smartmetertexas.net'
     HOST = f'https://{HOSTNAME}'
     USER_AGENT = 'API Calls (python3; Linux x86_64) Track your own metrics with SmartMeterTX: https://github.com/markizano/smartmetertx'
     TIMEOUT = 30
 
     def __init__(self, timeout=10):
         self.log = getLogger(__name__)
+        self.config = getConfig()
         self.logged_in = False
+        self.gpg = gnupg.GPG(gnupghome=os.path.join(os.environ['HOME'], '.gnupg'), use_agent=True)
         self.session = requests.Session()
         self.timeout = timeout
         self.session.headers['Authority'] = MeterReader.HOSTNAME
@@ -33,12 +35,6 @@ class MeterReader:
         self.session.headers['Accept-Language'] = 'en-US,en;q=0.9'
         self.session.headers['Content-Type'] = 'application/json; charset=UTF-8'
         self.session.headers['dnt'] = '1'
-        self.session.headers['sec-ch-ua'] = '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'
-        self.session.headers['sec-ch-ua-mobile'] = '?0'
-        self.session.headers['sec-ch-ua-platform'] = 'Linux'
-        self.session.headers['sec-fetch-dest'] = 'empty'
-        self.session.headers['sec-fetch-mode'] = 'cors'
-        self.session.headers['sec-fetch-site'] = 'same-origin'
         self.session.headers['User-Agent'] = MeterReader.USER_AGENT
 
     def api_call(self, url, json):
@@ -54,50 +50,29 @@ class MeterReader:
                 url=url,
                 json=json,
                 timeout=self.timeout,
-                verify=False
+                # Since Feb2024 update, you need to be whitelisted and have a client cert to access the endpoint.
+                cert=(os.path.expanduser(self.config['smartmetertx']['cert_path']), os.path.expanduser(self.config['smartmetertx']['key_path'])),
+                auth=(self.config['smartmetertx']['user'], self.gpg.decrypt(self.config['smartmetertx']['pass']).data.decode('utf-8'))
             )
         except Exception as ex:
             self.log.error(repr(ex))
             raise ex
 
-    def login(self, username, password):
-        '''
-        Make API call to login and acquire a session token.
-        @param username :string: Username or email used to Login to the webpage.
-        @param password :string: Password used to login.
-        @return :string: The login token that will be used going forward.
-        '''
-        creds = {
-            "username": username,
-            "password": password
-        }
-        url = f"{MeterReader.HOST}/commonapi/user/authenticate"
-        r = self.api_call(url, json=creds)
-        if r.status_code != 200:
-            self.log.error("Login failed.")
-            self.log.debug(pformat(r.headers.__dict__))
-            self.log.debug(r.text)
-            self.log.debug(self.session.cookies.__dict__)
-            return False
-        else:
-            self.token = r.json()['token']
-            self.log.info("Login successful!")
-            self.log.debug(f"Got \x1b[33m{self.token}\x1b[0m as token.")
-            self.session.headers["Authorization"] = f"Bearer {self.token}"
-            self.logged_in = True
-            return self.token
-
     def get_daily_read(self, esiid, start_date, end_date):
-        if self.logged_in == False:
-            self.log.error("You must login first.")
-            return False
-
         json = {
-            "esiid": esiid,
-            "endDate": end_date,
+            "trans_id": esiid,
+            "requestorID": self.config['smartmetertx']['user'].upper(),
+            "requesterType": "RES",
             "startDate": start_date,
+            "endDate": end_date,
+            "version": "L",
+            "readingType": "c",
+            "esiid": [
+                esiid
+            ],
+            "SMTTermsandConditions": "Y"
         }
-        url = f"{MeterReader.HOST}/api/usage/daily"
+        url = f"{MeterReader.HOST}/dailyreads/"
         r = self.api_call(url, json=json)
         if r.status_code != 200 or "error" in r.text.lower():
             self.log.warning("Failed fetching daily read!")

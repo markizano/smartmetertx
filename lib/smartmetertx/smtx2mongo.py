@@ -4,7 +4,6 @@
 import os
 import dateparser
 import pymongo
-import gnupg
 import json
 from datetime import datetime
 
@@ -29,6 +28,7 @@ class Smtx2Mongo(object):
         self.config = getConfig()
         self.mongo = getMongoConnection(self.config)
         self.db = self.mongo.get_database(self.config['mongo'].get('dbname', 'smartmetertx'))
+        self.collection = self.db.dailyReads
         self.getSMTX()
         self.ensureIndexes()
 
@@ -38,12 +38,12 @@ class Smtx2Mongo(object):
         self.mongo = None
 
     def ensureIndexes(self):
-        self.db.meterReads.create_index(
-            [('reading', 1)],
+        self.collection.create_index(
+            [('revisionDate', 1)],
             background=True
         )
-        self.db.meterReads.create_index(
-            [('datetime', 1)],
+        self.collection.create_index(
+            [('readDate', 1)],
             background=True,
             unique=True
         )
@@ -51,31 +51,44 @@ class Smtx2Mongo(object):
 
     def getSMTX(self):
         log.info('Connecting to SmartMeterTX...')
-        gpg = gnupg.GPG(gnupghome=os.path.join(os.getenv('HOME', '/home/markizano') , '.gnupg'), use_agent=True)
         self.smtx = MeterReader()
-        smtx_user = self.config['smartmetertx']['user']
-        smtx_pass = gpg.decrypt(self.config['smartmetertx']['pass']).data.decode('utf-8').strip()
-        self.smtx.login(smtx_user, smtx_pass)
-        log.info('Success! Getting meter reads...')
+        log.info('Success!')
         return self.smtx
 
     def getDailyReads(self):
         # Get the meter reads and print the date in the format their API expects.
+        log.info('Getting daily reads from SmartMeterTX API...')
         reads = self.smtx.get_daily_read(self.config['smartmetertx']['esiid'], SMTX_FROM.strftime('%m/%d/%Y'), SMTX_TO.strftime('%m/%d/%Y'))
         if not reads:
             log.warn('Failed to get records from meterReads()')
         else:
-            log.info('Acquired %d meter reads! Inserting into DB...' % len(reads['dailyData']))
+            log.info('Acquired %d meter reads!' % len(reads['registeredReads']))
         return reads
 
-    def filterDailyReads(self, dailyData):
+    def typecastDailyReads(self, dailyData):
+        '''
+        Convert strings to proper data types to store in DB.
+        Feb-2024 update data structure:
+
+        {
+            "trans_id": "00000000000000000",
+            "esiid": "0000000000000000000",
+            "registeredReads": [{
+                "readDate": "01/01/2024",
+                "revisionDate": "01/02/2024 00:00:00",
+                "startReading": "0000.000",
+                "endReading": "0000.000",
+                "energyDataKwh": "00.000"
+            }]
+        }
+        '''
         results = []
-        log.debug(json.dumps(dailyData, indent=2))
+        log.debug(json.dumps(dailyData, indent=2, default=str))
         for meterRead in dailyData:
-            meterRead['datetime'] = datetime.strptime('%(date)s %(starttime)s' % meterRead, '%m/%d/%Y %H:%M%p')
-            del meterRead['date'], meterRead['starttime']
-            meterRead['startreading'] = float(meterRead['startreading'])
-            meterRead['endreading'] = float(meterRead['endreading'])
+            meterRead['readDate'] = datetime.strptime(meterRead['readDate'], '%m/%d/%Y')
+            meterRead['revisionDate'] = datetime.strptime(meterRead['revisionDate'], '%m/%d/%Y %H:%M:%S')
+            meterRead['startReading'] = float(meterRead['startReading'])
+            meterRead['endReading'] = float(meterRead['endReading'])
             results.append(meterRead)
         return results
 
@@ -83,7 +96,7 @@ class Smtx2Mongo(object):
         results = []
         log.info('Inserting %d reads into the DB.' % len(dailyData))
         try:
-            insertResult = self.db.meterReads.insert_many(dailyData)
+            insertResult = self.collection.insert_many(dailyData)
             log.debug(insertResult)
             results.append(insertResult)
         except pymongo.errors.BulkWriteError as e:
@@ -92,7 +105,7 @@ class Smtx2Mongo(object):
                 raise errs
         log.info('Complete!')
 
-def main():
+def main() -> int:
     log.info('Gathering records from %s to %s' % ( SMTX_FROM.strftime('%F/%R'), SMTX_TO.strftime('%F/%R') ) )
     smtx2mongo = Smtx2Mongo()
     reads = smtx2mongo.getDailyReads()
@@ -100,7 +113,7 @@ def main():
         log.error('Failed to read smartmetertexas API...')
         return 2
 
-    dailyData = smtx2mongo.filterDailyReads(reads['dailyData'])
+    dailyData = smtx2mongo.typecastDailyReads(reads['registeredReads'])
     if dailyData:
         smtx2mongo.insertDailyData(dailyData)
     else:
