@@ -44,3 +44,7 @@ Extend as you please from here :)
 
 # Screenshots
 ![smtx-sample-page](https://markizano.net/assets/images/smtx-home-page.png)
+
+# References
+- SMTX API Documentation: https://www.smartmetertexas.com/commonapi/gethelpguide/help-guides/Smart_Meter_Texas_Data_Access_Interface_Guide.pdf
+

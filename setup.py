@@ -7,43 +7,49 @@ from pprint import pprint
 from setuptools import setup
 
 try:
-    import yaml
-except ImportError:
-    os.system('pip3 install PyYAML')
-    import yaml
-
-sys.path.insert(0, os.path.abspath('.'))
+    VERSION = f"{io.open('VERSION').read().strip()}.{io.open('.build-id').read().strip()}"
+except Exception:
+    try:
+        import yaml
+        pkginfo = yaml.safe_load(io.open('PKG-INFO').read())
+        VERSION = pkginfo['Version']
+    except ModuleNotFoundError:
+        with io.open('PKG-INFO') as fd:
+            for line in fd:
+                if 'Version' in line:
+                    VERSION = line.split(': ')[1].strip()
+                    break
 
 try:
-    PATCH = io.open('.build-id').read().strip()
-except:
+    requirements = io.open('requirements.txt').read().strip().split('\n')
+except Exception:
     try:
-        pkginfo = yaml.safe_load(io.open('PKG-INFO').read())
-        PATCH = pkginfo['Version'].split('.').pop()
-    except Exception as e:
-        PATCH = '0'
+        requirements = io.open('smartmetertx2mongo.egg-info/requires.txt').read().strip().split('\n')
+    except Exception:
+        requirements = '''dateparser
+kizano
+pymongo
+requests
+cherrypy
+PyYAML
+python-gnupg
+jinja2'''.split()
 
 setup_opts = {
     'name'                : 'smartmetertx2mongo',
     # We change this default each time we tag a release.
-    'version'             : f'1.2.{PATCH}',
+    'version'             : VERSION,
     'description'         : 'Implementation of smartmetertx to save records to mongodb with config driven via YAML.',
     'author'              : 'Markizano Draconus',
     'author_email'        : 'markizano@markizano.net',
     'url'                 : 'https://markizano.net/',
     'license'             : 'GNU',
     'tests_require'       : ['nose', 'mock', 'coverage'],
-    'install_requires'    : [
-        'dateparser',
-        'kizano',
-        'pymongo',
-        'requests',
-        'cherrypy',
-        'PyYAML',
-        'python-gnupg',
-        'jinja2',
-    ],
+    'setup_requires'      : ['PyYAML'],
+    'install_requires'    : requirements,
     'package_dir'         : { 'smartmetertx': 'lib/smartmetertx' },
+    'package_data'        : { '': ['VERSION', 'requirements.txt'] },
+    'include_package_data': True,
     'packages'            : [
       'smartmetertx',
     ],
