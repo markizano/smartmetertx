@@ -9,10 +9,8 @@ import os
 import dateparser
 import pymongo
 import boto3
-from datetime import datetime
 
 from kizano import getConfig, getLogger
-from smartmetertx.api import MeterReader
 from smartmetertx.utils import getMongoConnection
 
 log = getLogger(__name__)
