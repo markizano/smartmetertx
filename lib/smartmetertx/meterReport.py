@@ -30,7 +30,7 @@ class SmartMeterTxMeterReport(object):
         if self.mongo:
             self.mongo.close()
             self.mongo = None
-    
+
     def getDailyReads(self):
         '''
         Get the meter reads for the date range specified in the environment variables.
@@ -64,13 +64,15 @@ Daily Reads Report
 Date Range: %s to %s
     
 ''' % ( SMTX_FROM.strftime('%F'), SMTX_TO.strftime('%F') )
+        total = 0.0
         for read in reads:
             report += '%(readDate)s: %(energyDataKwh)s kWh\n' % read
+            total += float(read['energyDataKwh'])
+        report += "\n\nTotal Energy Use: %0.2f\n" % total
         response = sns.publish(
             TopicArn=self.config['aws']['sns']['topic'],
             Subject='SmartMeterTX Daily Reads Report',
-            Message=report,
-            MessageFormat='text'
+            Message=report
         )
         log.debug(report)
         log.info(f'Report size in bytes: {len(bytes(report, "utf-8"))}')
