@@ -22,13 +22,14 @@ class MeterReader:
     USER_AGENT = 'API Calls (python3; Linux x86_64) Track your own metrics with SmartMeterTX: https://github.com/markizano/smartmetertx'
     TIMEOUT = 30
 
-    def __init__(self, timeout=10):
+    def __init__(self, timeout: int = 10):
         self.log = getLogger(__name__)
         self.config = getConfig()
         self.logged_in = False
         self.gpg = gnupg.GPG(gnupghome=os.path.join(os.environ['HOME'], '.gnupg'), use_agent=True)
         self.session = requests.Session()
         self.timeout = timeout
+        self.lastError = None
         self.session.headers['Authority'] = MeterReader.HOSTNAME
         self.session.headers['Origin'] = MeterReader.HOST
         self.session.headers['Accept'] = 'application/json, text/plain, */*'
@@ -37,7 +38,7 @@ class MeterReader:
         self.session.headers['dnt'] = '1'
         self.session.headers['User-Agent'] = MeterReader.USER_AGENT
 
-    def api_call(self, url, json):
+    def api_call(self, url: str, json: dict) -> requests.Response:
         '''
         Generic API call that can be made to the site for JSON results back.
         @param url :string: Where to send POST request.
@@ -58,7 +59,15 @@ class MeterReader:
             self.log.error(repr(ex))
             raise ex
 
-    def get_daily_read(self, esiid, start_date, end_date):
+    def get_daily_read(self, esiid: str, start_date: str, end_date: str) -> dict|bool:
+        '''
+        Gets a daily meter read.
+        @param esiid :string: The ESIID to get the daily read.
+        @param start_date :string: The start date to get the read in MM/DD/YYYY format.
+        @param end_date :string: The end date to get the read in MM/DD/YYYY format.
+        @throws Exception: If the API call fails.
+        @return :object: JSON response back or False if failed.
+        '''
         json = {
             "trans_id": esiid,
             "requestorID": self.config['smartmetertx']['user'].upper(),
@@ -67,17 +76,39 @@ class MeterReader:
             "endDate": end_date,
             "version": "L",
             "readingType": "c",
-            "esiid": [
-                esiid
-            ],
+            "esiid": [ esiid ],
             "SMTTermsandConditions": "Y"
         }
         url = f"{MeterReader.HOST}/dailyreads/"
-        r = self.api_call(url, json=json)
-        if r.status_code != 200 or "error" in r.text.lower():
+        try:
+            response = self.api_call(url, json=json)
+        except Exception as ex:
+            self.log.error(repr(ex))
+            self.lastError = {
+                'url': url,
+                'request': json,
+                'exception': repr(ex),
+            }
+            return False
+        if response.status_code != 200 or "error" in response.text.lower():
             self.log.warning("Failed fetching daily read!")
-            self.log.debug(r.text)
-            self.log.debug(pformat(r.headers.__dict__))
+            self.log.debug(response.text)
+            self.log.debug(pformat(response.headers.__dict__))
+            self.lastError = {
+                'status': response.status_code,
+                'headers': response.headers.__dict__,
+                'url': url,
+                'request': json,
+                'response': response.text,
+            }
             return False
         else:
-            return r.json()
+            return response.json()
+
+    def get_last_error(self) -> dict|None:
+        if self.lastError:
+            error = self.lastError
+            self.lastError = None
+            return error
+        return None
+

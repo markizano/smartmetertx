@@ -9,6 +9,7 @@ from datetime import datetime
 
 from kizano import getConfig, getLogger
 from smartmetertx.api import MeterReader
+from smartmetertx.notify import NotifyHelper
 from smartmetertx.utils import getMongoConnection
 
 log = getLogger(__name__)
@@ -26,6 +27,7 @@ class Smtx2Mongo(object):
 
     def __init__(self):
         self.config = getConfig()
+        self.notify = NotifyHelper()
         self.mongo = getMongoConnection(self.config)
         self.db = self.mongo.get_database(self.config['mongo'].get('dbname', 'smartmetertx'))
         self.collection = self.db.dailyReads
@@ -60,12 +62,15 @@ class Smtx2Mongo(object):
         log.info('Getting daily reads from SmartMeterTX API...')
         reads = self.smtx.get_daily_read(self.config['smartmetertx']['esiid'], SMTX_FROM.strftime('%m/%d/%Y'), SMTX_TO.strftime('%m/%d/%Y'))
         if not reads:
-            log.warn('Failed to get records from meterReads()')
+            log.warning('Failed to get records from meterReads()')
+            error = self.smtx.get_last_error()
+            if error:
+                self.notify.error('SmartMeterTX API Exception', 'Failed to get records from meterReads(): %s' % error)
         else:
             log.info('Acquired %d meter reads!' % len(reads['registeredReads']))
         return reads
 
-    def typecastDailyReads(self, dailyData):
+    def typecastDailyReads(self, dailyData: list[dict]) -> list[dict]:
         '''
         Convert strings to proper data types to store in DB.
         Feb-2024 update data structure:
@@ -102,22 +107,28 @@ class Smtx2Mongo(object):
         except pymongo.errors.BulkWriteError as e:
             errs = list(filter( lambda x: x['code'] != 11000, e.details['writeErrors'] ))
             if errs:
-                raise errs
+                log.error('Failed to insert records: %s' % errs)
+                self.notify.error('SmartMeterTX to MongoDB Exception', 'Failed to insert records into MongoDB:\n%s' % errs)
         log.info('Complete!')
 
 def main() -> int:
     log.info('Gathering records from %s to %s' % ( SMTX_FROM.strftime('%F/%R'), SMTX_TO.strftime('%F/%R') ) )
     smtx2mongo = Smtx2Mongo()
-    reads = smtx2mongo.getDailyReads()
-    if not reads:
-        log.error('Failed to read smartmetertexas API...')
-        return 2
+    try:
+        reads = smtx2mongo.getDailyReads()
+        if not reads:
+            log.error('Failed to read smartmetertexas API...')
+            return 2
 
-    dailyData = smtx2mongo.typecastDailyReads(reads['registeredReads'])
-    if dailyData:
-        smtx2mongo.insertDailyData(dailyData)
-    else:
-        log.warning('No records inserted!')
-    smtx2mongo.close()
+        dailyData = smtx2mongo.typecastDailyReads(reads['registeredReads'])
+        if dailyData:
+            smtx2mongo.insertDailyData(dailyData)
+        else:
+            log.warning('No records inserted!')
+        smtx2mongo.close()
+    except Exception as e:
+        log.error('Failed to insert records into MongoDB: %s' % e)
+        smtx2mongo.notify.error('SmartMeterTX to MongoDB Exception', 'Global exception trying to insert records into MongoDB:\n%s' % e)
+        return 1
     return 0
 

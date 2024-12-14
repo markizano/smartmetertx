@@ -45,7 +45,7 @@ setup_opts = {
     'url'                 : 'https://markizano.net/',
     'license'             : 'GNU',
     'tests_require'       : ['nose', 'mock', 'coverage'],
-    'setup_requires'      : ['PyYAML'],
+    'setup_requires'      : ['PyYAML>=6.0.1', 'boto3>=1.34.155'],
     'install_requires'    : requirements,
     'package_dir'         : { 'smartmetertx': 'lib/smartmetertx' },
     'package_data'        : { '': ['VERSION', 'requirements.txt'] },
