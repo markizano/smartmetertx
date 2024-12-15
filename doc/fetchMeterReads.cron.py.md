@@ -15,7 +15,9 @@ The TO date where to stop results. This is usually not inclusive, so if you want
 
 In `/etc/cron.d/metrics`, I have the following:
 
+```
 2 2 * * * smartmetertx /home/smartmetertx/bin/fetch-meter-reads.sh
+```
 
 # Example CRON script
 In this script, I have it setup to ensure the script runs as the specified user since I don't like scripts running as root:
