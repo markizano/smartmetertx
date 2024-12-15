@@ -33,7 +33,7 @@ class NotifyHelper(object):
         Send an INFO message to the configured SNS topic.
         '''
         if self.notify_topic:
-            sns.publish(
+            return sns.publish(
                 TopicArn=self.notify_topic,
                 Subject=subject,
                 Message=message,
@@ -46,7 +46,7 @@ class NotifyHelper(object):
         Send an ERROR message to the configured SNS topic.
         '''
         if self.error_topic:
-            sns.publish(
+            return sns.publish(
                 TopicArn=self.error_topic,
                 Subject=subject,
                 Message=f'{message}\nTraceback:\n{tb.format_exc()}',
