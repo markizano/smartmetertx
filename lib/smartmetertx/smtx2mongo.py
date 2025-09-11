@@ -142,6 +142,9 @@ class Smtx2Mongo(object):
             }
             for readingData in energyData['RD'].split(','):
                 if not readingData: continue
+                if readingData == '-':
+                    remapped['readingData'].append( (0.0, 'X') )
+                    continue
                 reading, readingType = readingData.split('-')
                 reading = float(reading)
                 remapped['readingData'].append( (reading, readingType) )
@@ -183,8 +186,9 @@ def main() -> int:
         else:
             log.warning('No daily reads inserted!')
     except Exception as e:
-        log.error('Failed to insert daily reads into MongoDB: %s' % e)
-        smtx2mongo.notify.error('SmartMeterTX to MongoDB Exception', f'Global exception trying to insert daily reads into MongoDB:\n{e}')
+        errmsg = f'Global exception trying to insert daily reads into MongoDB:\n{e}\n'
+        log.error(errmsg)
+        smtx2mongo.notify.error('SmartMeterTX to MongoDB Exception', errmsg)
         return 1
 
     try:
@@ -195,8 +199,9 @@ def main() -> int:
         else:
             log.warning('No 15min reads inserted!')
     except Exception as e:
-        log.error('Failed to insert 15min reads into MongoDB: %s' % e)
-        smtx2mongo.notify.error('SmartMeterTX to MongoDB Exception', f'Global exception trying to insert 15min reads into MongoDB:\n{e}')
+        errmsg = f'Global exception trying to insert 15min reads into MongoDB:\n{e}\n'
+        log.error(errmsg)
+        smtx2mongo.notify.error('SmartMeterTX to MongoDB Exception', errmsg)
         return 1
 
     smtx2mongo.close()
