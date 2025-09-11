@@ -99,7 +99,6 @@ class Smtx2Mongo(object):
         }
         '''
         results = []
-        log.debug(json.dumps(dailyData, indent=2, default=str))
         for meterRead in dailyData:
             meterRead['readDate'] = datetime.strptime(meterRead['readDate'], '%m/%d/%Y')
             meterRead['revisionDate'] = datetime.strptime(meterRead['revisionDate'], '%m/%d/%Y %H:%M:%S')
@@ -107,6 +106,7 @@ class Smtx2Mongo(object):
             meterRead['endReading'] = float(meterRead['endReading'])
             meterRead['energyDataKwh'] = float(meterRead['energyDataKwh'])
             results.append(meterRead)
+        log.debug(json.dumps(dailyData, indent=2, default=str))
         return results
 
     def typecast15minReads(self, interval15Data: list[dict]) -> list[dict]:
@@ -131,6 +131,7 @@ class Smtx2Mongo(object):
         It accounts for 2 hours between the break, so ... timezone offset?
         '''
         result = []
+        log.debug(json.dumps(interval15Data, indent=2, default=str))
         # Re-map the keys to make them more descriptive.
         for energyData in interval15Data:
             remapped = {

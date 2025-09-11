@@ -2,9 +2,8 @@ import os
 import requests
 import gnupg
 import dateparser
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from pprint import pformat
 from kizano import getLogger, getConfig
 
 # BEGIN: #StackOverflow
@@ -49,6 +48,14 @@ class MeterReader:
             'dnt': '1',
             'User-Agent': MeterReader.USER_AGENT,
         })
+        if os.getenv('LOCAL', False):
+            # I use a local proxy for just the SMTX API because they whitelist by IP.
+            # Using a local SSH Dynamic Proxy allows me to source from PROD without interfering with boto3.
+            self.log.info('Using local proxy...')
+            self.session.proxies.update({
+                'http': 'socks5://127.0.0.1:5000',
+                'https': 'socks5://127.0.0.1:5000',
+            })
         self.login()
 
     def login(self) -> str:
