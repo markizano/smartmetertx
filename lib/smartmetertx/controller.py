@@ -80,7 +80,7 @@ class SmartMeterController(object):
         Return a [err] http response code and send the status message as an object.
         Usage:
 
-          return self.returnError(500, ['no such file or directory'])
+        return self.returnError(500, ['no such file or directory'])
         '''
         kwargs = {}
         if not cherrypy.response.status or ( cherrypy.response.status >= 200 and cherrypy.response.status <= 299 ):
@@ -88,9 +88,9 @@ class SmartMeterController(object):
         if isinstance(mesgs, str):
             mesgs = [mesgs]
         result = {
-          'error': True,
-          'mesgs': err.get('mesgs', mesgs),
-          'value': None,
+            'error': True,
+            'mesgs': err.get('mesgs', mesgs),
+            'value': None,
         }
         if 'DEBUG' in os.environ:
             kwargs['indent'] = 2

@@ -27,3 +27,4 @@ tests/tmp/*
 .build-id
 node_modules
 .vscode
+.venv
