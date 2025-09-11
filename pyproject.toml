@@ -1,3 +1,54 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartmetertx2mongo"
+# Use VERSION file for releases
+dynamic = ["version"]
+description = "Implementation of SmartMeter Texas to store reads in MongoDB and serve a simple UI/API."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE*", "COPYING*", "NOTICE*", "AUTHORS*"]
+authors = [{ name = "Markizano Draconus", email = "markizano@markizano.net" }]
+
+# runtime deps (from requirements.txt)
+dependencies = [
+  "CherryPy==18.10.0",
+  "Jinja2==3.1.6",
+  "PyYAML==6.0.2",
+  "boto3==1.40.28",
+  "dateparser==1.2.2",
+  "kizano==1.0.6",
+  "pymongo==4.15.0",
+  "python-gnupg==0.5.5",
+  "requests==2.32.5",
+]
+
+# CLI entry points (replaces copying raw scripts)
+[project.scripts]
+smtx-fetch = "smartmetertx.smtx2mongo:main"
+smtx-report = "smartmetertx.meterReport:main"
+smtx-server = "smartmetertx.server:main"
+
+[project.urls]
+Homepage = "https://markizano.net"
+Repository = "https://github.com/markizano/smartmetertx"
+Issues = "https://github.com/markizano/smartmetertx/issues"
+Documentation = "https://docs.markizano.net"
+
+# Your code lives under lib/smartmetertx
+[tool.setuptools.package-dir]
+smartmetertx = "lib/smartmetertx"
+
+[tool.setuptools.packages.find]
+where = ["lib"]
+
+# Read version from the VERSION file at repo root
+[tool.setuptools.dynamic]
+version = {file = ["VERSION"]}
+
+# Install UI files to share/smartmetertx (server.py expects this path)
+[tool.setuptools.data-files]
+"share/smartmetertx" = ["lib/ui/*"]
