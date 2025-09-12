@@ -3,6 +3,7 @@ import os, sys
 import cherrypy
 import jinja2
 import json
+import dateparser
 from datetime import datetime
 
 from kizano import getLogger, getConfig, Config
@@ -20,6 +21,8 @@ class MeterServer(SmartMeterController):
         super(MeterServer, self)
         self.config = config
         self.db = getMongoConnection(config).get_database(config['mongo'].get('dbname', 'smartmetertx'))
+        count = self.db.dailyReads.count_documents({})
+        log.error(f'>>> Found {count} meter reads <<<')
 
     def __del__(self):
         self.close()
@@ -47,18 +50,17 @@ class MeterServer(SmartMeterController):
         if date is None:
             return self.returnValue(False, 'No date specified.')
         try:
-            import dateparser
             queryDate = dateparser.parse(date)
             timerange = {
                 '$gte': queryDate.replace( hour=max(0, queryDate.hour-1) ),
                 '$lt': queryDate.replace( hour=min(23, queryDate.hour+1) )
             }
-            result = self.db.meterReads.find_one({'datetime': timerange })
+            result = self.db.dailyReads.find_one({'readDate': timerange })
             if result is None:
                 return self.returnValue(False, f'No meter read found for {date}')
             log.debug(result)
             del result['_id']
-            result['datetime'] = result['datetime'].strftime('%F/%R:%S')
+            result['readDate'] = result['readDate'].strftime('%F/%R:%S')
             return self.returnValue(True, result)
         except Exception as e:
             import traceback as tb
@@ -78,18 +80,17 @@ class MeterServer(SmartMeterController):
             return self.returnValue(False, 'No From Date Specified. Need `fdate`.')
         if tdate is None:
             return self.returnValue(False, 'No To Date Specified. Need `tdate`.')
-        import dateparser
         fromDate = dateparser.parse(fdate)
         toDate = dateparser.parse(tdate)
         timerange = {
             '$gte': fromDate,
             '$lt': toDate
         }
-        projection = { '_id': False, 'reading': True, 'datetime': True}
-        reads = list( self.db.meterReads.find({'datetime': timerange }, projection) )
+        projection = { '_id': False, 'energyDataKwh': True, 'readDate': True}
+        reads = list( self.db.dailyReads.find({'readDate': timerange }, projection) )
         for mRead in reads:
-            sdate = mRead['datetime'].strftime('%F')
-            result.append( [sdate, mRead['reading'] ] )
+            sdate = mRead['readDate'].strftime('%F')
+            result.append( [sdate, float(mRead['energyDataKwh']) ] )
         return self.returnValue(True, result)
 
     @cherrypy.expose
