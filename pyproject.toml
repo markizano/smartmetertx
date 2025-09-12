@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=80", "wheel", "setuptools-scm>=9"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -45,10 +45,14 @@ smartmetertx = "lib/smartmetertx"
 [tool.setuptools.packages.find]
 where = ["lib"]
 
-# Read version from the VERSION file at repo root
-[tool.setuptools.dynamic]
-version = {file = ["VERSION"]}
-
 # Install UI files to share/smartmetertx (server.py expects this path)
 [tool.setuptools.data-files]
 "share/smartmetertx" = ["lib/ui/*"]
+
+# Follow releases for versioning.
+[tool.setuptools_scm]
+tag_regex = "^v(?P<version>.+)$"
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"
+write_to = "lib/smartmetertx/_version.py"
+write_to_template = "__version__ = \"{version}\"\n"
