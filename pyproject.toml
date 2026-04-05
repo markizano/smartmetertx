@@ -20,7 +20,7 @@ dependencies = [
   "PyYAML==6.0.2",
   "boto3==1.40.28",
   "dateparser==1.2.2",
-  "kizano==1.0.6",
+  "kizano==1.0.8",
   "pymongo==4.15.0",
   "python-gnupg==0.5.5",
   "requests==2.32.5",
