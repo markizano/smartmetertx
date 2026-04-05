@@ -5,14 +5,15 @@ import jinja2
 import json
 import dateparser
 from datetime import datetime
+from importlib import resources
 
 from kizano import getLogger, getConfig, Config
 log = getLogger('smartmetertx.server', log_format='json')
 
-from .utils import getMongoConnection
-from .controller import SmartMeterController
+from smartmetertx.utils import getMongoConnection
+from smartmetertx.controller import SmartMeterController
 
-DEFAULT_UI_PATH = os.path.join( sys.exec_prefix, 'share', 'smartmetertx' )
+DEFAULT_UI_PATH = resources.files('smartmetertx').joinpath('ui')
 
 class MeterServer(SmartMeterController):
     mongo = None
