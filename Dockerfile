@@ -1,8 +1,15 @@
+FROM python:3.11 as build
+
+WORKDIR /app
+COPY . .
+RUN pip install -U uv
+RUN uv build
+
 FROM python:3.11
 
-ARG VERSION 1.2.0
-ENV VERSION ${VERSION}
-ENV PKG smartmetertx2mongo-${VERSION}.tar.gz
+ARG VERSION 1.4.0
+ENV VERSION=${VERSION}
+ENV PKG=smartmetertx2mongo-${VERSION}*.tar.gz
 
 
 RUN addgroup --gid=200 apps
@@ -15,10 +22,9 @@ RUN mkdir -m0700 ~/.gnupg
 RUN python3 -m venv .
 
 # Assume we ran `setup.py sdist` already.
-COPY dist/${PKG} /tmp/${PKG}
+COPY --from=build --chown=smartmetertx:smartmetertx /app/dist/smartmetertx2mongo-${VERSION}*.tar.gz /tmp/${PKG}
 
-RUN . bin/activate && pip install -U pip PyYAML
-RUN . bin/activate && pip install /tmp/${PKG}
+RUN . bin/activate && pip install -U pip PyYAML && pip install /tmp/${PKG} && rm -f /tmp/${PKG}
 
-ENTRYPOINT ["/usr/bin/python3.11"]
-CMD ["/var/lib/smartmetertx/bin/smtx-server.py"]
+ENTRYPOINT ["/var/lib/smartmetertx/bin/python3"]
+CMD ["/var/lib/smartmetertx/bin/smtx-server"]
