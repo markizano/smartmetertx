@@ -5,9 +5,9 @@ import os
 import dateparser
 import pymongo
 import json
-from datetime import datetime
 
 from kizano import getConfig, getLogger
+from smartmetertx import schema
 from smartmetertx.api import MeterReader
 from smartmetertx.notify import NotifyHelper
 from smartmetertx.utils import getMongoConnection
@@ -30,8 +30,8 @@ class Smtx2Mongo(object):
         self.notify = NotifyHelper()
         self.mongo = getMongoConnection(self.config)
         self.db = self.mongo.get_database(self.config['mongo'].get('dbname', 'smartmetertx'))
-        self.dailyReads = self.db.dailyReads
-        self.interval15minReads = self.db.interval15minReads
+        self.dailyReads = self.db[schema.DAILY_READS]
+        self.interval15minReads = self.db[schema.INTERVAL_READS]
         self.getSMTX()
         self.ensureIndexes()
 
@@ -41,25 +41,14 @@ class Smtx2Mongo(object):
             self.mongo = None
 
     def ensureIndexes(self):
-        self.dailyReads.create_index(
-            [('revisionDate', 1)],
-            background=True,
-        )
-        self.dailyReads.create_index(
-            [('readDate', 1)],
-            background=True,
-            unique=True,
-        )
-        self.interval15minReads.create_index(
-            [('readingDate', 1)],
-            background=True,
-            unique=True,
-        )
-        self.interval15minReads.create_index(
-            [('revisionDate', 1)],
-            background=True,
-            unique=True,
-        )
+        for idx in schema.DAILY_READ_INDEXES:
+            keys = idx['keys']
+            opts = {k: v for k, v in idx.items() if k != 'keys'}
+            self.dailyReads.create_index(keys, **opts)
+        for idx in schema.INTERVAL_READ_INDEXES:
+            keys = idx['keys']
+            opts = {k: v for k, v in idx.items() if k != 'keys'}
+            self.interval15minReads.create_index(keys, **opts)
         return self
 
     def getSMTX(self):
@@ -98,16 +87,8 @@ class Smtx2Mongo(object):
             }]
         }
         '''
-        results = []
-        for meterRead in dailyData:
-            meterRead['readDate'] = datetime.strptime(meterRead['readDate'], '%m/%d/%Y')
-            meterRead['revisionDate'] = datetime.strptime(meterRead['revisionDate'], '%m/%d/%Y %H:%M:%S')
-            meterRead['startReading'] = float(meterRead['startReading'])
-            meterRead['endReading'] = float(meterRead['endReading'])
-            meterRead['energyDataKwh'] = float(meterRead['energyDataKwh'])
-            results.append(meterRead)
         log.debug(json.dumps(dailyData, indent=2, default=str))
-        return results
+        return [schema.castDailyRead(r) for r in dailyData]
 
     def typecast15minReads(self, interval15Data: list[dict]) -> list[dict]:
         '''
@@ -130,26 +111,8 @@ class Smtx2Mongo(object):
         "RD" field contains 100 comma-separated readings, but the 4 empty ones removed makes 96.
         It accounts for 2 hours between the break, so ... timezone offset?
         '''
-        result = []
         log.debug(json.dumps(interval15Data, indent=2, default=str))
-        # Re-map the keys to make them more descriptive.
-        for energyData in interval15Data:
-            remapped = {
-                'readingDate': dateparser.parse(energyData['DT']),
-                'revisionDate': dateparser.parse(energyData['RevTS']),
-                'readingType': energyData['RT'],
-                'readingData': [],
-            }
-            for readingData in energyData['RD'].split(','):
-                if not readingData: continue
-                if readingData == '-':
-                    remapped['readingData'].append( (0.0, 'X') )
-                    continue
-                reading, readingType = readingData.split('-')
-                reading = float(reading)
-                remapped['readingData'].append( (reading, readingType) )
-            result.append(remapped)
-        return result
+        return [schema.castIntervalRead(r) for r in interval15Data]
 
     def insertDailyData(self, dailyData):
         log.info('Inserting %d reads into the DB.' % len(dailyData))

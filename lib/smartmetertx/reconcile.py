@@ -18,6 +18,7 @@ import dateparser
 import requests
 
 from kizano import getConfig, getLogger
+from smartmetertx import schema
 from smartmetertx.utils import getMongoConnection
 
 log = getLogger(__name__)
@@ -69,7 +70,7 @@ class SmtxReconciler:
         Returns {mm: avg_monthly_kwh}.
         '''
         log.info('Fetching daily reads since %s...', since.strftime('%F'))
-        cursor = self.db.dailyReads.find({'readDate': {'$gte': since}}).sort('readDate', 1)
+        cursor = self.db[schema.DAILY_READS].find({'readDate': {'$gte': since}}).sort('readDate', 1)
         by_year_month = defaultdict(list)
         for rec in cursor:
             date = rec['readDate']
@@ -101,7 +102,7 @@ class SmtxReconciler:
         scrape date's plans, sorted by price.kwh2000 ascending.
         '''
         log.info('Fetching provider plans since %s...', since.strftime('%F'))
-        cursor = list(self.db.power2choose.find({'discovered_at': {'$gte': since}}))
+        cursor = list(self.db[schema.POWER2CHOOSE].find({'discovered_at': {'$gte': since}}))
         log.info('Found %d power2choose records.', len(cursor))
 
         # Determine the latest scrape date

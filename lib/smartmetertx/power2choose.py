@@ -12,7 +12,7 @@ import requests
 import pymongo
 
 import kizano
-from smartmetertx import notify, utils
+from smartmetertx import notify, schema, utils
 
 log = kizano.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class Power2ChooseFetcher:
         self.notify = notify.NotifyHelper()
         self.mongo  = utils.getMongoConnection(self.config)
         self.db     = self.mongo.get_database(self.config['mongo'].get('dbname', 'smartmetertx'))
-        self.collection = self.db.power2choose
+        self.collection = self.db[schema.POWER2CHOOSE]
 
     def close(self):
         if self.mongo:
@@ -78,35 +78,12 @@ class Power2ChooseFetcher:
         log.info('Received %d plans from API.', len(plans))
         return plans
 
-    def mapPlan(self, raw: dict, discovered_at: datetime) -> dict:
+    def mapPlan(self, raw: dict, discovered_at: datetime) -> schema.Power2ChoosePlan:
         '''
-        Map raw API fields to the MongoDB document schema.
+        Map raw API fields to the MongoDB Power2ChoosePlan schema.
         Stores plan_name clean (no n8n template noise).
         '''
-        return {
-            'plan_id':        int(raw['plan_id']),
-            'company_id':     str(raw.get('company_id', '')),
-            'company_name':   str(raw.get('company_name', '')),
-            'plan_name':      str(raw.get('plan_name', '')),
-            'website':        str(raw.get('website', '')),
-            'price': {
-                'kwh500':  float(raw.get('price_kwh500', 0)),
-                'kwh1000': float(raw.get('price_kwh1000', 0)),
-                'kwh2000': float(raw.get('price_kwh2000', 0)),
-            },
-            'pricing_details': str(raw.get('pricing_details', '')),
-            'tos':             str(raw.get('terms_of_service', '')),
-            'fact_sheet':      str(raw.get('fact_sheet', '')),
-            'prepaid':         bool(raw.get('prepaid', False)),
-            'timeofuse':       bool(raw.get('timeofuse', False)),
-            'min_usage':       bool(raw.get('minimum_usage', False)),
-            'rating_total':    float(raw.get('rating_total', 0)),
-            'rating_count':    int(raw.get('rating_count', 0)),
-            'promotions':      str(raw.get('promotions', '')),
-            'term_value':      int(raw.get('term_value', 0)),
-            'special_terms':   str(raw.get('special_terms', '')),
-            'discovered_at':   discovered_at,
-        }
+        return schema.castPlan(raw, discovered_at)
 
     def insertPlans(self, plans: list) -> int:
         '''

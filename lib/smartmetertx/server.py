@@ -1,5 +1,7 @@
 
-import os, sys
+import os
+import sys
+import traceback
 import cherrypy
 import jinja2
 import json
@@ -10,6 +12,7 @@ from importlib import resources
 from kizano import getLogger, getConfig, Config
 log = getLogger('smartmetertx.server', log_format='json')
 
+from smartmetertx import schema
 from smartmetertx.utils import getMongoConnection
 from smartmetertx.controller import SmartMeterController
 
@@ -22,7 +25,7 @@ class MeterServer(SmartMeterController):
         super(MeterServer, self)
         self.config = config
         self.db = getMongoConnection(config).get_database(config['mongo'].get('dbname', 'smartmetertx'))
-        count = self.db.dailyReads.count_documents({})
+        count = self.db[schema.DAILY_READS].count_documents({})
         log.error(f'>>> Found {count} meter reads <<<')
 
     def __del__(self):
@@ -56,7 +59,7 @@ class MeterServer(SmartMeterController):
                 '$gte': queryDate.replace( hour=max(0, queryDate.hour-1) ),
                 '$lt': queryDate.replace( hour=min(23, queryDate.hour+1) )
             }
-            result = self.db.dailyReads.find_one({'readDate': timerange })
+            result = self.db[schema.DAILY_READS].find_one({'readDate': timerange})
             if result is None:
                 return self.returnValue(False, f'No meter read found for {date}')
             log.debug(result)
@@ -64,9 +67,8 @@ class MeterServer(SmartMeterController):
             result['readDate'] = result['readDate'].strftime('%F/%R:%S')
             return self.returnValue(True, result)
         except Exception as e:
-            import traceback as tb
             log.error(f'Error getting meter read for {date}: {e}')
-            log.error(tb.format_exc())
+            log.error(traceback.format_exc())
             return self.returnValue(False, 'uhm, well, this is embarassing :S')
 
     @cherrypy.expose
@@ -88,7 +90,7 @@ class MeterServer(SmartMeterController):
             '$lt': toDate
         }
         projection = { '_id': False, 'energyDataKwh': True, 'readDate': True}
-        reads = list( self.db.dailyReads.find({'readDate': timerange }, projection) )
+        reads = list(self.db[schema.DAILY_READS].find({'readDate': timerange}, projection))
         for mRead in reads:
             sdate = mRead['readDate'].strftime('%F')
             result.append( [sdate, float(mRead['energyDataKwh']) ] )

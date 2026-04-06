@@ -9,6 +9,7 @@ import os
 import dateparser
 
 from kizano import getConfig, getLogger
+from smartmetertx import schema
 from smartmetertx.utils import getMongoConnection
 from smartmetertx.notify import NotifyHelper
 
@@ -24,7 +25,7 @@ class SmartMeterTxMeterReport(object):
         self.notify = NotifyHelper()
         self.mongo = getMongoConnection(self.config)
         self.db = self.mongo.get_database(self.config['mongo'].get('dbname', 'smartmetertx'))
-        self.collection = self.db.dailyReads
+        self.collection = self.db[schema.DAILY_READS]
 
     def close(self):
         if self.mongo:
