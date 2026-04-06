@@ -29,8 +29,9 @@ dependencies = [
 # CLI entry points (replaces copying raw scripts)
 [project.scripts]
 smtx-fetch = "smartmetertx.smtx2mongo:main"
-smtx-report = "smartmetertx.meterReport:main"
+smtx-power2choose = "smartmetertx.power2choose:main"
 smtx-reconcile = "smartmetertx.reconcile:main"
+smtx-report = "smartmetertx.meterReport:main"
 smtx-server = "smartmetertx.server:main"
 
 [project.urls]
