@@ -6,7 +6,10 @@ the configured MongoDB `power2choose` collection. Intended to run daily via cron
 Sends an SNS error alert via NotifyHelper if the fetch or insert fails.
 '''
 import argparse
+from base64 import b64encode
+import json
 from datetime import datetime, timezone
+from hashlib import sha1
 
 import requests
 import pymongo
@@ -78,13 +81,6 @@ class Power2ChooseFetcher:
         log.info('Received %d plans from API.', len(plans))
         return plans
 
-    def mapPlan(self, raw: dict, discovered_at: datetime) -> schema.Power2ChoosePlan:
-        '''
-        Map raw API fields to the MongoDB Power2ChoosePlan schema.
-        Stores plan_name clean (no n8n template noise).
-        '''
-        return schema.castPlan(raw, discovered_at)
-
     def insertPlans(self, plans: list) -> int:
         '''
         Bulk-insert mapped plan documents into MongoDB.
@@ -113,10 +109,12 @@ class Power2ChooseFetcher:
         discovered_at = datetime.now(tz=timezone.utc)
 
         raw_plans = self.fetchPlans(params)
-        mapped    = [self.mapPlan(p, discovered_at) for p in raw_plans]
+        # Associate a unique ID with all of these discovered other than the date.
+        batch_id = b64encode(sha1((discovered_at.strftime('%s') + json.dumps(raw_plans)).encode('utf-8')).digest()).decode('utf-8')
+        mapped    = [schema.castPlan(p, batch_id, discovered_at) for p in raw_plans]
         inserted  = self.insertPlans(mapped)
 
-        log.info(f'Power to Choose fetch complete: {inserted}/{len(mapped)} plans stored for {discovered_at.strftime("%F")}.')
+        log.info(f'Power to Choose fetch complete: {inserted}/{len(mapped)} plans stored for {discovered_at.strftime("%F")} with Batch ID {batch_id}.')
         return 0
 
 

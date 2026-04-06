@@ -107,7 +107,7 @@ def castIntervalRead(raw: dict) -> IntervalRead:
     }
 
 
-def castPlan(raw: dict, discovered_at: datetime) -> Power2ChoosePlan:
+def castPlan(raw: dict, batch_id: str, discovered_at: datetime) -> Power2ChoosePlan:
     '''
     Map a raw Power to Choose API response record to the MongoDB Power2ChoosePlan
     document schema, coercing all fields to their correct types.
@@ -119,6 +119,7 @@ def castPlan(raw: dict, discovered_at: datetime) -> Power2ChoosePlan:
     '''
     return {
         'plan_id':         int(raw['plan_id']),
+        'batch_id':        str(batch_id),
         'company_id':      str(raw.get('company_id', '')),
         'company_name':    str(raw.get('company_name', '')),
         'plan_name':       str(raw.get('plan_name', '')),
