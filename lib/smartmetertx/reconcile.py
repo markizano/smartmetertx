@@ -117,10 +117,10 @@ class SmtxReconciler:
         scratch_latest = os.path.join(self.scratch_pad, 'latest_plans.json')
         with open(scratch_all, 'w') as f:
             json.dump([{k: str(v) if isinstance(v, datetime) else v for k, v in p.items() if k != '_id'}
-                       for p in cursor], f, indent=2)
+                    for p in cursor], f, indent=2)
         with open(scratch_latest, 'w') as f:
             json.dump([{k: str(v) if isinstance(v, datetime) else v for k, v in p.items() if k != '_id'}
-                       for p in plans_latest], f, indent=2)
+                    for p in plans_latest], f, indent=2)
 
         return cursor, plans_latest
 
@@ -249,13 +249,14 @@ class SmtxReconciler:
             }
         return trend
 
-    def cleanPlanName(self, raw: str) -> str:
-        '''Strip scraper artifacts from plan_name (e.g. "FixedExpression=..." prefixes).'''
-        parts = re.split(r'FixedExpression', raw)
-        return parts[-1].lstrip('=').strip()
-
-    def generateReport(self, ranked: list, monthly_usage: dict, trend: dict,
-                       current_rate: float, renewal_rate: float) -> str:
+    def generateReport(
+        self,
+        ranked: list,
+        monthly_usage: dict,
+        trend: dict,
+        current_rate: float,
+        renewal_rate: float
+    ) -> str:
         '''
         Produce the full Markdown report string.
         '''
@@ -421,8 +422,13 @@ class SmtxReconciler:
 
         return '\n'.join(lines) + '\n'
 
-    def _printSummary(self, ranked: list, monthly_usage: dict,
-                      current_rate: float, renewal_rate: float):
+    def _printSummary(
+        self,
+        ranked: list,
+        monthly_usage: dict,
+        current_rate: float,
+        renewal_rate: float,
+    ):
         '''Print a compact rank table to stdout.'''
         annual_kwh  = sum(monthly_usage.values())
         current_ann = annual_kwh * current_rate / 100.0
@@ -482,7 +488,7 @@ class SmtxReconciler:
             annual, monthly = self.estimateAnnualCost(pricing, monthly_usage)
             ranked.append({
                 'company_name':   cname,
-                'plan_name_clean':self.cleanPlanName(plan['plan_name']),
+                'plan_name_clean':plan['plan_name'],
                 'term_value':     plan.get('term_value'),
                 'prepaid':        plan.get('prepaid', False),
                 'timeofuse':      plan.get('timeofuse', False),
@@ -529,8 +535,7 @@ def main() -> int:
     parser.add_argument('-o', '--output', default='results.md',
                         help='Output Markdown file path (default: results.md)')
     parser.add_argument('--scratch-pad', default=None,
-                        help='Directory for intermediate artifacts. '
-                             'Defaults to smtx-data-<YYYY-MM-DD-HHMM>/ in CWD.')
+                        help='Directory for intermediate artifacts. Defaults to smtx-data-<YYYY-MM-DD-HHMM>/ in CWD.')
     parser.add_argument('--current-rate', type=float, default=None,
                         help='Your current rate in ¢/kWh (prompted interactively if omitted)')
     parser.add_argument('--renewal-rate', type=float, default=None,
@@ -562,7 +567,12 @@ def main() -> int:
 
     reconciler = SmtxReconciler(scratch_pad)
     try:
-        return reconciler.run(since_providers, since_meter_reads,
-                              args.current_rate, args.renewal_rate, args.output)
+        return reconciler.run(
+            since_providers,
+            since_meter_reads,
+            args.current_rate,
+            args.renewal_rate,
+            args.output
+        )
     finally:
         reconciler.close()
