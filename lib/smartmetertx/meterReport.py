@@ -15,8 +15,8 @@ from smartmetertx.notify import NotifyHelper
 
 log = getLogger(__name__)
 HOME = os.getenv('HOME', '')
-SMTX_FROM   = dateparser.parse(os.environ.get('SMTX_FROM', 'day before yesterday'))
-SMTX_TO     = dateparser.parse(os.environ.get('SMTX_TO', 'today'))
+SMTX_FROM   = dateparser.parse(os.environ.get('SMTX_FROM', '30 days ago at midnight'))
+SMTX_TO     = dateparser.parse(os.environ.get('SMTX_TO', 'today at midnight'))
 
 class SmartMeterTxMeterReport(object):
 

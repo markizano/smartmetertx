@@ -28,3 +28,6 @@ tests/tmp/*
 node_modules
 .vscode
 .venv
+
+*.pdf
+workspace/
